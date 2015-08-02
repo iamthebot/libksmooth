@@ -1,5 +1,5 @@
-#include <ksmooth/kernels.h>
 #include <math.h>
+#include <ksmooth/kernels.h>
 
 double ksmooth_dgaussian(double x, double s)
 {
