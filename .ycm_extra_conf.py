@@ -1,4 +1,6 @@
 import os
+import re
+import subprocess
 import ycm_core
 # Specify pkg-config targets to add to add cflags for
 

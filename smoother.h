@@ -1,42 +1,35 @@
 #pragma once
 #include <stdlib.h>
 #include <glib.h>
+#include <czmq.h>
 #include <ksmooth/kernels.h>
 #include <ksmooth/scheduler.h>
 
 // Nadaraya-Watson smoother
 typedef struct ksmooth_nw_smoother_t {
-    unsigned int concurrency;
+    unsigned int c;            // concurrency level (i.e. # of threads)
     double (*dkernel)(double); // kernel to use for smoothing floats
     float (*fkernel)(float);   // kernel to use for smoothing doubles
     GMutex* mut;               // used to make smoother thread-safe
-    ksmooth_bounds_t* bounds;  // used to store computed per-thread bounds
+    ksmooth_task_t* tasks;     // used to store tasks dispatched to threads
+    zsock_t* th_q_arr;         // used to dispatch tasks to threads
 } ksmooth_nw_smoother_t;
 
-typedef struct ksmooth_thread_payload_t {
-    unsigned int tid; // thread id
-    void* smoother;
-    void* input_arr;
-    void* output_arr;
-    size_t start_idx;
-    size_t end_idx;
-} ksmooth_thread_payload_t;
+// task for thread to work on
+typedef struct ksmooth_task_t {
+    void* input_arr;  // our input
+    void* output_arr; // our output
+    size_t size;      // array size to look at
+    size_t start;     // starting index for smoothing
+    size_t end;       // ending index for smoothing
+    bool shutdown;    // whether we should ignore the other stuff and shutdown the thread
+} ksmooth_bounds_t;
 
-typedef enum { KSMOOTH_KERNEL_GAUSSIAN } ksmooth_kernel;
+// What we pass to each thread at creation
+typedef struct ksmooth_th_init_data_t {
+    unsigned int tid;  // thread id
+    zsock_t* thread_q; // queue to receive tasks from
+} ksmooth_init_data_t;
 
-typedef enum { KSMOOTH_OK, KSMOOTH_INVALID_BOUNDS } ksmooth_status;
-
-// create new Nadaraya-Watson smoother
-ksmooth_nw_smoother_t ksmooth_new_nw_smoother(ksmooth_kernel k);
-
-// set concurrency level for smoother. If not called, default is number of cores on machine.
-void ksmooth_set_concurrency(void* smoother);
-
-// free resources associated with Nadaraya-Watson smoother
-void ksmooth_destroy_nw_smoother(ksmooth_nw_smoother_t* s);
-
-// smooth array of floats with given size and bandwidth. Returns 0 if OK.
-int ksmooth_nw_fsmooth(ksmooth_nw_smoother_t* s, float* input, float* output, size_t size, long long bandwidth);
-
-// smooth array of doubles with given size and bandwidth. Returns 0 if OK.
-int ksmooth_nw_dsmooth(ksmooth_nw_smoother_t* s, double* input, float* output, size_t size, long long bandwidth);
+// gets bounds of array for each thread to work on
+void ksmooth_nw_get_tasks(ksmooth_nw_smoother_t* smoother, unsigned int c, size_t len);
