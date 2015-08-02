@@ -18,4 +18,4 @@ void ksmooth_destroy_nw_smoother(ksmooth_nw_smoother_t* s);
 int ksmooth_nw_fsmooth(ksmooth_nw_smoother_t* s, float* input, float* output, size_t size, long long bandwidth);
 
 // smooth array of doubles with given size and bandwidth. Returns 0 if OK.
-int ksmooth_nw_dsmooth(ksmooth_nw_smoother_t* s, double* input, float* output, size_t size, long long bandwidth);
+int ksmooth_nw_dsmooth(ksmooth_nw_smoother_t* s, double* input, double* output, size_t size, long long bandwidth);
